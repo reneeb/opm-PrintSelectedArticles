@@ -1,0 +1,16 @@
+{
+    "name": "PrintSelectedArticles",
+    "version": "3.3.1",
+    "framework": [
+        "3.3.x"
+    ],
+    "vendor": {
+        "name":  "Perl-Services.de",
+        "url": "http://www.perl-services.de"
+    },
+    "license": "GNU AFFERO GENERAL PUBLIC LICENSE Version 3, November 2007",
+    "description" : {
+        "en": "Print selected articles of a ticket",
+        "de": "Drucke ausgewählte Artikel eines Tickets"
+    }
+}

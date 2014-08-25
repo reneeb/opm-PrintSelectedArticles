@@ -1,0 +1,18 @@
+=head1 NAME
+
+PrintSelectedArticles
+
+=head1 DESCRIPTION
+
+Currently you can only print the complete ticket - even if it has 100 or more articles -
+or a single article. But what can you do when you are interested in three of 100 articles?
+You can use this add-on.
+
+It adds a checkbox to every article in the ticket zoom. And when you click on the "Print" link
+in the ticket menu it is checked whether some articles are selected or not. If some articles
+are selected, those articles are printed.
+
+=head1 AUTHOR
+
+Renee Baecker C<< <info@feature-addons.de> >>
+
