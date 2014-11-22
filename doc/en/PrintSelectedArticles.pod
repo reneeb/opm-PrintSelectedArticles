@@ -12,6 +12,10 @@ It adds a checkbox to every article in the ticket zoom. And when you click on th
 in the ticket menu it is checked whether some articles are selected or not. If some articles
 are selected, those articles are printed.
 
+=head1 REPOSITORY AND BUGTRACKER
+
+The code repository and a bugtracker are available at L<http://github.com/reneeb/otrs-PrintSelectedArticles>.
+
 =head1 AUTHOR
 
 Renee Baecker C<< <info@feature-addons.de> >>
