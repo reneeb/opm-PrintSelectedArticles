@@ -14,10 +14,11 @@ use warnings;
 
 use List::Util qw(first);
 
-use Kernel::System::Encode;
-use Kernel::System::Time;
+our $VERSION = 0.03;
 
-our $VERSION = 0.02;
+our @ObjectDependencies = qw(
+    Kernel::System::Web::Request
+);
 
 sub new {
     my ( $Type, %Param ) = @_;
@@ -26,24 +27,7 @@ sub new {
     my $Self = {};
     bless( $Self, $Type );
 
-    # get needed objects
-    for my $Object (
-        qw(MainObject ConfigObject LogObject LayoutObject ParamObject)
-        )
-    {
-        $Self->{$Object} = $Param{$Object} || die "Got no $Object!";
-    }
-
     $Self->{UserID} = $Param{UserID};
-
-    $Self->{EncodeObject}    = $Param{EncodeObject} || Kernel::System::Encode->new( %{$Self} );
-    $Self->{TimeObject}      = $Param{TimeObject}   || Kernel::System::Time->new( %{$Self} );
-
-    $Self->{DBObject} = $Self->{LayoutObject}->{DBObject};
-
-    if ( $Param{TicketObject} ) {
-        $Self->{TicketObject} = $Param{TicketObject};
-    }
 
     return $Self;
 }
@@ -51,22 +35,23 @@ sub new {
 sub Run {
     my ( $Self, %Param ) = @_;
 
+    my $ParamObject = $Kernel::OM->Get('Kernel::System::Web::Request');
+
     # get template name
     #my $Templatename = $Param{TemplateFile} || '';
-    my $Templatename = $Self->{ParamObject}->GetParam( Param => 'Action' );
+    my $Templatename = $ParamObject->GetParam( Param => 'Action' );
 
     return 1 if !$Templatename;
     return 1 if !$Param{Templates}->{$Templatename};
-    return 1 if !$Self->{TicketObject};
 
     # define if rich text should be used
-    my ($TicketID) = $Self->{ParamObject}->GetParam( Param => 'TicketID' );
+    my ($TicketID) = $ParamObject->GetParam( Param => 'TicketID' );
 
     return 1 if !$TicketID;
 
     # add checkboxes
     my $Checkbox = q~
-      <input type="checkbox" name="print_checkbox_$QData{"ArticleID"}" value="$QData{"ArticleID"}" />
+      <input type="checkbox" name="print_checkbox_[% Data.ArticleID | html %]" value="[% Data.ArticleID | html %]" />
     ~;
 
     ${ $Param{Data} } =~ s{(<td class=".*? NonTextContent">)}{$1$Checkbox};
