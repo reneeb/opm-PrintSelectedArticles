@@ -166,13 +166,17 @@ sub Run {
 
     # check if only some articles need to be printed
     if (@ArticleID) {
-       my @TmpArticleBox;
+        my @TmpArticleBox;
+        my $Counter = 0;
 
         ARTICLE:
         for my $Article (@ArticleBox) {
             if ( first { $Article->{ArticleID} == $_ } @ArticleID ) {
+                $Article->{__PS_ARTICLECOUNTER__} = $Counter;
                 push @TmpArticleBox, $Article;
             }
+
+            $Counter++;
         }
 
         @ArticleBox = @TmpArticleBox if @TmpArticleBox;
@@ -1004,7 +1008,12 @@ sub _PDFOutputArticles {
 
         # article number tag
         $Self->{PDFObject}->Text(
-            Text     => '    # ' . $ArticleCounter,
+# ---
+# PS
+# ---
+#            Text     => '    # ' . $ArticleCounter,
+            Text     => '    # ' . $Article->{__PS_ARTICLECOUNTER__},
+# ---
             Height   => 7,
             Type     => 'Cut',
             Font     => 'ProportionalBoldItalic',
