@@ -1,12 +1,12 @@
-<?xml version="1.0" encoding="iso-8859-1"?>
-<otrs_config version="1.0" init="Application">
-    <ConfigItem Name="Frontend::Output::FilterElementPre###OutputFilterTicketChecklist" Required="0" Valid="1">
+<?xml version="1.0" encoding="utf-8"?>
+<otrs_config version="1.0" init="Config">
+    <ConfigItem Name="Frontend::Output::FilterElementPost###OutputFilterTicketChecklist" Required="0" Valid="1">
         <Description Translatable="1">Module to show checkboxes in article tree to select articles to be printed.</Description>
         <Group>PrintSelectedArticles</Group>
         <SubGroup>OutputFilter</SubGroup>
         <Setting>
             <Hash>
-                <Item Key="Module">Kernel::Output::HTML::OutputFilterPrintSelectedArticles</Item>
+                <Item Key="Module">Kernel::Output::HTML::FilterElementPost::PrintSelectedArticles</Item>
                 <Item Key="Debug">0</Item>
                 <Item Key="Templates">
                     <Hash>
