@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <otrs_package version="1.0">
-    <!-- GENERATED WITH OTRS::OPM::Maker::Command::sopm (1.29) -->
+    <!-- GENERATED WITH OTRS::OPM::Maker::Command::sopm (1.33) -->
     <Name>PrintSelectedArticles</Name>
-    <Version>4.0.2</Version>
-    <Framework>4.0.x</Framework>
+    <Version>5.0.1</Version>
+    <Framework>5.0.x</Framework>
     <Vendor>Perl-Services.de</Vendor>
     <URL>http://www.perl-services.de</URL>
     <Description Lang="de">Drucke ausgewählte Artikel eines Tickets</Description>
@@ -11,7 +11,7 @@
     <License>GNU AFFERO GENERAL PUBLIC LICENSE Version 3, November 2007</License>
     <Filelist>
         <File Permission="644" Location="Custom/Kernel/Modules/AgentTicketPrint.pm" />
-        <File Permission="644" Location="Custom/Kernel/Output/HTML/OutputFilterPrintSelectedArticles.pm" />
+        <File Permission="644" Location="Custom/Kernel/Output/HTML/FilterElementPost/PrintSelectedArticles.pm" />
         <File Permission="644" Location="Kernel/Config/Files/PrintSelectedArticles.xml" />
         <File Permission="644" Location="doc/PrintSelectedArticles.json" />
         <File Permission="644" Location="doc/en/PrintSelectedArticles.pod" />
