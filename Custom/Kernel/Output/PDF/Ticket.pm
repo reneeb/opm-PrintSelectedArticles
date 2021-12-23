@@ -1,6 +1,7 @@
 # --
-# Copyright (C) 2001-2018 OTRS AG, https://otrs.com/
-# Changes Copyright (C) 2014 - 2018 Perl-Services.de, https://perl-services.de
+# Copyright (C) 2001-2021 OTRS AG, https://otrs.com/
+# Copyright (C) 2021 Znuny GmbH, https://znuny.org/
+# Changes Copyright (C) 2014 - 2021 Perl-Services.de, https://perl-services.de
 # --
 # This software comes with ABSOLUTELY NO WARRANTY. For details, see
 # the enclosed file COPYING for license information (GPL). If you
@@ -15,19 +16,20 @@ use warnings;
 our @ObjectDependencies = (
     'Kernel::Config',
     'Kernel::Output::HTML::Layout',
+    'Kernel::System::CommunicationChannel',
+    'Kernel::System::CustomerUser',
+    'Kernel::System::DateTime',
+    'Kernel::System::DynamicField',
+    'Kernel::System::DynamicField::Backend',
     'Kernel::System::LinkObject',
     'Kernel::System::Log',
     'Kernel::System::PDF',
-    'Kernel::System::JSON',
-    'Kernel::System::User',
-    'Kernel::System::CustomerUser',
     'Kernel::System::Ticket',
     'Kernel::System::Ticket::Article',
-    'Kernel::System::DynamicField',
-    'Kernel::System::DynamicField::Backend',
+    'Kernel::System::User',
 );
 
-use Kernel::System::VariableCheck qw(IsHashRefWithData);
+use Kernel::System::VariableCheck qw(:all);
 
 sub new {
     my ( $Type, %Param ) = @_;
@@ -656,7 +658,7 @@ sub _PDFOutputLinkedObjects {
     for my $LinkTypeLinkDirection ( sort { lc $a cmp lc $b } keys %{ $Param{LinkData} } ) {
 
         # Investigate link type name.
-        my @LinkData = split q{::}, $LinkTypeLinkDirection;
+        my @LinkData     = split q{::}, $LinkTypeLinkDirection;
         my $LinkTypeName = $TypeList{ $LinkData[0] }->{ $LinkData[1] . 'Name' };
         $LinkTypeName = $LayoutObject->{LanguageObject}->Translate($LinkTypeName);
 
@@ -893,7 +895,10 @@ sub _PDFOutputTicketDynamicFields {
 sub _PDFOutputCustomerInfos {
     my ( $Self, %Param ) = @_;
 
-    # Check needed stuff.
+    my $LayoutObject              = $Kernel::OM->Get('Kernel::Output::HTML::Layout');
+    my $DynamicFieldObject        = $Kernel::OM->Get('Kernel::System::DynamicField');
+    my $DynamicFieldBackendObject = $Kernel::OM->Get('Kernel::System::DynamicField::Backend');
+
     for my $Needed (qw(PageData CustomerData)) {
         if ( !defined( $Param{$Needed} ) ) {
             $Kernel::OM->Get('Kernel::System::Log')->Log(
@@ -918,17 +923,55 @@ sub _PDFOutputCustomerInfos {
         }
     }
 
-    my $LayoutObject = $Kernel::OM->Get('Kernel::Output::HTML::Layout');
-
+    FIELD:
     for my $Field ( @{$Map} ) {
-        if ( ${$Field}[3] && $CustomerData{ ${$Field}[0] } ) {
-            $TableParam{CellData}[$Row][0]{Content} = $LayoutObject->{LanguageObject}->Translate( ${$Field}[1] ) . ':';
-            $TableParam{CellData}[$Row][0]{Font}    = 'ProportionalBold';
-            $TableParam{CellData}[$Row][1]{Content} = $CustomerData{ ${$Field}[0] };
+        next FIELD if !defined $CustomerData{ $Field->[0] };
+        next FIELD if !length $CustomerData{ $Field->[0] };
+        next FIELD if !$Field->[3];                            # not visible
 
-            $Row++;
-            $Output = 1;
+        my $Label = $LayoutObject->{LanguageObject}->Translate( $Field->[1] ) . ':';
+        my $Value = $CustomerData{ $Field->[0] };
+
+        # render dynamic field values
+        if ( $Field->[5] eq 'dynamic_field' ) {
+            next FIELD if $Field->[0] !~ m{\ADynamicField_(.*)\z};
+
+            my $DynamicFieldName   = $1;
+            my $DynamicFieldConfig = $DynamicFieldObject->DynamicFieldGet(
+                Name => $DynamicFieldName,
+            );
+            next FIELD if !IsHashRefWithData($DynamicFieldConfig);
+
+            my $Values = $Value;
+            if ( !IsArrayRefWithData($Values) ) {
+                $Values = [$Value];
+            }
+
+            my @RenderedValues;
+            VALUE:
+            for my $Value ( @{$Values} ) {
+                my $RenderedValue = $DynamicFieldBackendObject->DisplayValueRender(
+                    DynamicFieldConfig => $DynamicFieldConfig,
+                    Value              => $Value,
+                    HTMLOutput         => 0,
+                    LayoutObject       => $LayoutObject,
+                );
+
+                next VALUE if !IsHashRefWithData($RenderedValue) || !defined $RenderedValue->{Value};
+
+                push @RenderedValues, $RenderedValue->{Value};
+            }
+
+            $Value = join ', ', @RenderedValues;
+            $Label = $DynamicFieldConfig->{Label};
         }
+
+        $TableParam{CellData}[$Row][0]{Font}    = 'ProportionalBold';
+        $TableParam{CellData}[$Row][0]{Content} = $Label;
+        $TableParam{CellData}[$Row][1]{Content} = $Value;
+
+        $Row++;
+        $Output = 1;
     }
     $TableParam{ColumnData}[0]{Width} = 80;
     $TableParam{ColumnData}[1]{Width} = 431;
@@ -1046,7 +1089,7 @@ sub _PDFOutputArticles {
         }
         my $Attachments;
         for my $FileID ( sort keys %AtmIndex ) {
-            my %File = %{ $AtmIndex{$FileID} };
+            my %File     = %{ $AtmIndex{$FileID} };
             my $Filesize = $LayoutObject->HumanReadableDataSize( Size => $File{FilesizeRaw} );
             $Attachments .= $File{Filename} . ' (' . $Filesize . ")\n";
         }
@@ -1103,6 +1146,9 @@ sub _PDFOutputArticles {
             Y    => 2,
         );
 
+        my @CommunicationChannelList = $Kernel::OM->Get('Kernel::System::CommunicationChannel')->ChannelList();
+        my %CommunicationChannels    = map { $_->{ChannelID} => $_->{ChannelName} } @CommunicationChannelList;
+
         my %ArticleFields = $LayoutObject->ArticleFields(%Article);
 
         # Display article fields.
@@ -1118,10 +1164,29 @@ sub _PDFOutputArticles {
             next ARTICLE_FIELD if $ArticleField{HideInTicketPrint};
             next ARTICLE_FIELD if !$ArticleField{Value};
 
+            my $FieldValue = $ArticleField{Value};
+
+            if (
+                $CommunicationChannels{ $Article{CommunicationChannelID} } eq 'Internal'
+                && $Article{SenderType} eq 'agent'
+                && $Param{Interface}->{Customer}
+                && $ArticleFieldKey eq 'From'
+                )
+            {
+
+                my $DisplayNoteFrom = $ConfigObject->Get('Ticket::Frontend::CustomerTicketZoom')->{DisplayNoteFrom}
+                    || '';
+
+                if ( $DisplayNoteFrom && $DisplayNoteFrom eq 'DefaultAgentName' ) {
+                    $FieldValue = $ConfigObject->Get('Ticket::Frontend::CustomerTicketZoom')->{DefaultAgentName}
+                        || 'Support Agent';
+                }
+            }
+
             $TableParam1{CellData}[$Row][0]{Content}
                 = $LayoutObject->{LanguageObject}->Translate( $ArticleField{Label} ) . ':';
             $TableParam1{CellData}[$Row][0]{Font}    = 'ProportionalBold';
-            $TableParam1{CellData}[$Row][1]{Content} = $ArticleField{Value};
+            $TableParam1{CellData}[$Row][1]{Content} = $FieldValue;
             $Row++;
         }
 
